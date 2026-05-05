@@ -2,7 +2,7 @@
 
 ## Overview
 
-**nhallucinate** is an AI coding assistant skill designed to prevent hallucination by grounding the AI in project-specific memory. It ensures the AI remembers what was done in previous sessions, what worked, what didn't, and the project's unique structure.
+**nhallucinate** is an AI coding assistant skill designed to prevent hallucination with project-specific memory, pattern detection, and signature verification.
 
 **Core Principle**: Every project has its own memory. What the AI learns in Project A stays in Project A.
 
@@ -17,7 +17,7 @@ When working on long coding sessions or complex projects, AI assistants often:
 1. **Forget previous work** - Can't remember what was tried 30 minutes ago
 2. **Repeat failed approaches** - Try the same broken solution again
 3. **Invent code** - Create functions or APIs that don't exist
-4. **Lose context** - Get confused when switching between tasks
+4. **Lose context** - Get confused when switching tasks
 
 ### Example of the Problem
 
@@ -26,11 +26,25 @@ User: Fix the login bug
 AI: *tries solution A* - FAILS
 User: (30 min later) Find the bug
 AI: *tries solution A again* - FAILS
-AI: *tries solution B* - FAILS
-AI: *tries solution A again* - FAILS
 ```
 
-The AI forgot it already tried solution A. **nhallucinate** solves this.
+nhallucinate solves this with 4 core features.
+
+---
+
+## Core Features
+
+### 1. Memory Persistence
+External file storage survives context window limits. Memory persists across sessions.
+
+### 2. Pattern Detection
+Detects when AI is stuck in repetitive error loops. Automatically suggests alternatives.
+
+### 3. Signature Verification
+Verifies function/method signatures exist before generating code. Rejects invented imports.
+
+### 4. Context Management
+Intelligently manages context with compression when window fills.
 
 ---
 
@@ -44,16 +58,16 @@ Each project gets its own memory folder:
 /path/to/project/
 ├── .agent/
 │   └── nhallucinate/
-│       ├── memory.md            # Milestones, recent changes
-│       ├── project-context.md   # Tech stack, file structure
-│       ├── lessons-learned.md  # Mistakes to avoid
-│       ├── current-task.md     # Active task state
-│       └── history/            # Session snapshots
+│       ├── memory.md              # Milestones, recent changes
+│       ├── project-context.md       # Tech stack, file structure
+│       ├── lessons-learned.md      # Mistakes to avoid
+│       ├── current-task.md         # Active task state
+│       ├── error-patterns.json     # Detected error patterns
+│       ├── function-signatures.json # Extracted signatures
+│       └── history/                # Session snapshots
 ├── src/
 └── ...
 ```
-
-**Key point**: The memory is stored in the PROJECT, not in a global location. This makes it portable (it travels with git) and project-specific.
 
 ---
 
@@ -70,17 +84,10 @@ Each project gets its own memory folder:
 ## Last Session (2026-05-05)
 - Added user authentication via Supabase
 - Migrated from PostgreSQL to Supabase
-- Fixed login redirect bug
 
 ## Milestones
 - [x] Set up React + Supabase
 - [x] User login system
-- [x] Dashboard with charts
-- [ ] Payment integration
-
-## Recent Changes
-- 2026-05-05: Added auth context
-- 2026-05-04: Created login form
 ```
 
 ### 2. project-context.md
@@ -89,48 +96,31 @@ Each project gets its own memory folder:
 
 **Content Example**:
 ```markdown
-# Project Context - my-app
+# Project Context
 
 ## Tech Stack
 - Frontend: React 18 + TypeScript
-- Backend: Supabase (PostgreSQL)
-- Auth: Supabase Auth
-- Styling: Tailwind CSS
-- State: Zustand
+- Backend: Supabase
 
 ## Key Files
-- /src/app/auth/* - Authentication
-- /src/lib/supabase.ts - Supabase client
-- /src/components/ui/* - UI components
-
-## Important Patterns
-- All API calls go through /src/lib/
-- Auth state in useAuth hook
-- Components use shadcn/ui
+- /src/lib/auth.ts
+- /src/components/ui/
 ```
 
 ### 3. lessons-learned.md
 
-**Purpose**: What didn't work in this project (IMPORTANT)
+**Purpose**: What didn't work in this project
 
 **Content Example**:
 ```markdown
-# Lessons Learned - my-app
+# Lessons Learned
 
 ## Don't Do This
-- Don't use localStorage for tokens (use Supabase session)
-- Don't put auth logic in components (use context)
-- Don't use MongoDB (stick to Supabase)
+- Don't use localStorage for tokens
+- Don't put auth in components
 
 ## Past Problems
-- 2026-05-05: Login redirect loop - needed to check auth state first
-- 2026-05-04: Database timeout - added connection pooling
-- 2026-05-03: API rate limit - added caching
-
-## Solutions That Worked
-- Auth: useSupabase hook + auth context
-- Caching: React Query with staleTime: 5000
-- Forms: react-hook-form + zod validation
+- 2026-05-05: Login redirect loop
 ```
 
 ### 4. current-task.md
@@ -139,61 +129,172 @@ Each project gets its own memory folder:
 
 **Content Example**:
 ```markdown
-# Current Task - my-app
+# Current Task
 
 ## Active Task
 Fix payment processing bug
 
 ## Approach
-1. Check error logs in dashboard
+1. Check error logs
 2. Verify Stripe webhook
-3. Test with test cards
 
 ## Completed
-- [x] Reproduced bug with test card
+- [x] Reproduced bug
+```
 
-## Remaining
-- [ ] Find root cause
-- [ ] Implement fix
-- [ ] Test fix
+### 5. error-patterns.json
+
+**Purpose**: Track repeated error patterns
+
+**Content Example**:
+```json
+{
+  "patterns": [
+    {
+      "error": "login redirect loop",
+      "approach": "reset password flow",
+      "attempts": 3,
+      "outcome": "failed"
+    }
+  ]
+}
+```
+
+### 6. function-signatures.json
+
+**Purpose**: Project function signatures
+
+**Content Example**:
+```json
+{
+  "signatures": {
+    "@/lib/auth": {
+      "useAuth": "() → AuthState",
+      "signIn": "(email, password) → Promise<void>"
+    }
+  }
+}
 ```
 
 ---
 
-## Workflow
-
-### Step-by-Step Process
+## Enhanced Workflow
 
 ```
 1. DETECT PROJECT
-   └─> Identify current project directory
+   └─> Identify project directory
 
 2. READ MEMORY
-   └─> Read .agent/nhallucinate/ files:
-       ├─ memory.md
-       ├─ current-task.md
-       ├─ project-context.md
-       └─ lessons-learned.md
+   └─> Read .agent/nhallucinate/ files
 
-3. BEFORE WORKING
-   └─> Check lessons-learned.md first!
-   └─> Review current-task.md
+3. PATTERN DETECTION
+   └─> Check error-patterns.json for repeats
+   └─> If same approach >2 times → flag it
 
-4. DURING WORK
+4. SIGNATURE VERIFICATION
+   └─> Parse AST to extract signatures
+   └─> Compare generated code against known
+   └─> Reject invented imports
+
+5. BEFORE WORKING
+   └─> Check lessons-learned.md first
+
+6. DURING WORK
    └─> Document changes with timestamps
-   └─> Update current-task.md
 
-5. ON FAILURE
-   └─> After 3 failed attempts:
-       ├─ Revert changes
-       ├─ Write to memory.md
-       ├─ Add to lessons-learned.md
-       └─ Notify user
+7. ON FAILURE
+   └─> After 3 failures → pattern detected
+   └─> Suggest alternative
 
-6. SESSION END
+8. SESSION END
    └─> Save to memory.md
-   └─> Write snapshot to history/
+   └─> Write to history/
 ```
+
+---
+
+## Pattern Detection
+
+### How It Works
+
+```
+Attempt 1: Try solution A → Fails → Record pattern
+Attempt 2: Try solution A → Fails → Detect pattern!
+Attempt 3: Try solution A → Blocked → Suggest alternative
+```
+
+### Detection Triggers
+
+- Same approach tried >2 times
+- Same error message repeated
+- >3 attempts within 10 minutes
+
+### After Detection
+
+Add to lessons-learned.md:
+```markdown
+## Don't Do This
+- Reset password flow (causes redirect loop)
+
+## Solutions That Worked
+- Check auth state before redirect
+```
+
+---
+
+## Signature Verification
+
+### How It Works
+
+Before generating code like `import { useAuth } from '@/lib/auth'`:
+
+1. Parse AST of actual project files
+2. Extract exported functions/methods
+3. Compare against generated code
+4. Reject if signature doesn't exist
+
+### Example
+
+```
+AI generates: import { usePermissions } from '@/lib/auth'
+Check signatures.json: usePermissions NOT FOUND
+Reject: "usePermissions does not exist. Available: useAuth, signIn"
+```
+
+### Verification Process
+
+- Function declarations parsed from source
+- Imported/exported functions tracked
+- Generated calls compared against known
+- Clear error if invented
+
+---
+
+## Context Management
+
+### When Context Fills
+
+At 70% context usage:
+
+1. **Prioritize**:
+   - Recent actions (highest)
+   - Project patterns
+   - General rules (lowest)
+
+2. **Compress**:
+   - Remove verbose details
+   - Keep summaries
+
+3. **Serialize**:
+   - Write to external files
+   - Free context space
+
+### Memory Optimization
+
+- **Time limit**: <30 seconds to read memory
+- **Age limit**: Ignore changes >30 days old
+- **Focus**: Recent changes, dependencies
+- **Flag uncertainty**: Note when unsure
 
 ---
 
@@ -201,63 +302,51 @@ Fix payment processing bug
 
 ### Use Case 1: Long Bug Fix
 
-**Scenario**: User is fixing a complex bug that takes multiple sessions
+**Scenario**: Fixing a bug across multiple sessions
 
-**Session 1**:
 ```
-AI: Working on login bug...
-AI: *tries reset password flow*
-AI: *documents in current-task.md*
-AI: Session ends, saves to memory.md
-```
+Session 1:
+- Tries reset password flow - FAILS
+- Documents in error-patterns.json
+- Session ends
 
-**Session 2** (next day):
-```
-AI: Reads memory.md - "Session 1 tried reset password flow"
-AI: Reads lessons-learned.md
-AI: *tries different approach - session token*
-AI: Success! Updates memory.md
+Session 2:
+- Pattern detected from previous attempts
+- Tries different approach - SUCCESS
 ```
 
-### Use Case 2: Switching Between Projects
-
-**Scenario**: User works on Project A, then switches to Project B
-
-**Project A**:
-```
-AI: Working on API development
-AI: Uses project-context.md for tech stack
-AI: Writes to .agent/nhallucinate/ (Project A)
-```
-
-**Project B** (different project):
-```
-AI: Different project detected
-AI: Reads Project B's memory
-AI: Different tech stack - Next.js not React
-AI: Writes to .agent/nhallucinate/ (Project B)
-```
-
-### Use Case 3: Avoiding Failed Approaches
+### Use Case 2: Avoiding Failed Approaches
 
 **Scenario**: AI tries something that failed before
 
 ```
-AI: Going to use localStorage for token storage...
+AI: Going to use localStorage for tokens...
 AI: *checks lessons-learned.md*
-AI: Found: "Don't use localStorage for tokens"
+AI: Found: "Don't use localStorage"
 AI: Uses Supabase session instead
 ```
 
-### Use Case 4: Feature Development
+### Use Case 3: Signature Mismatch
 
-**Scenario**: Building new feature with understanding of existing code
+**Scenario**: AI generates wrong import
 
 ```
-AI: Reading project-context.md...
-AI: Found: "All API calls go through /src/lib/"
-AI: Adds new API function to /src/lib/api.ts
-AI: Updates project-context.md
+AI: import { usePermissions } from '@/lib/auth'
+AI: *checks function-signatures.json*
+AI: usePermissions NOT FOUND
+AI: "Available: useAuth, signIn, signOut"
+```
+
+### Use Case 4: Context Exhaustion
+
+**Scenario**: Long session, context filling
+
+```
+Context at 70%:
+- Serialize to memory files
+- Compress to summaries
+- Clear unused context
+- Continue working
 ```
 
 ---
@@ -266,19 +355,17 @@ AI: Updates project-context.md
 
 ### /nhallucinate init
 
-Initialize the memory folder in the current project:
-
 ```bash
 mkdir -p .agent/nhallucinate/history
 touch .agent/nhallucinate/memory.md
 touch .agent/nhallucinate/project-context.md
 touch .agent/nhallucinate/lessons-learned.md
 touch .agent/nhallucinate/current-task.md
+touch .agent/nhallucinate/error-patterns.json
+touch .agent/nhallucinate/function-signatures.json
 ```
 
 ### /nhallucinate reset
-
-Clear memory and regenerate (keeps backup):
 
 ```bash
 cp -r .agent/nhallucinate .agent/nhallucinate.bak
@@ -288,124 +375,63 @@ rm -rf .agent/nhallucinate
 
 ### /nhallucinate status
 
-Show current project status:
-
 ```bash
 echo "=== $(pwd) ==="
-echo "--- memory.md ---"
 cat .agent/nhallucinate/memory.md
-echo "--- current-task.md ---"
-cat .agent/nhallucinate/current-task.md
+cat .agent/nhallucinate/error-patterns.json
+```
+
+### /nhallucinate extract-signatures
+
+```bash
+# Parse project AST
+# Write to function-signatures.json
 ```
 
 ---
 
 ## Best Practices
 
-### 1. Update Memory After Each Milestone
+1. **Update memory after each milestone** - Don't wait until session end
 
-Don't wait until end of session. After each significant change:
+2. **Check lessons-learned.md first** - Before trying any solution
 
-```markdown
-## Session Log
-- 2026-05-05 14:30: Added user authentication
-- 2026-05-05 15:00: Fixed auth redirect
-```
+3. **Track error patterns** - Document failures immediately
 
-### 2. Check lessons-learned.md First
+4. **Extract signatures** - When joining a project
 
-Before trying any solution, check what failed before:
+5. **Use timestamps** - Always include dates
 
-```markdown
-## Past Problems
-- DON'T: Use localStorage for tokens
-- DON'T: Put auth in components
-```
-
-### 3. Keep Summaries, Link Details
-
-Don't copy everything. Summarize + link to original:
-
-```markdown
-## Recent Changes
-- Refactored API - see history/session-2026-05-05.md
-```
-
-### 4. Use Timestamps
-
-Always include dates for context:
-
-```markdown
-- 2026-05-05: Added Supabase auth
-- 2026-05-04: Fixed query timeout
-```
-
-### 5. Document Failures Quickly
-
-When something fails, note it immediately:
-
-```markdown
-## Failed Approaches
-- Tried JWT tokens - expired too quickly
-- Solution: Use Supabase session refresh
-```
+6. **Flag uncertainty** - Explicitly note when unsure
 
 ---
 
 ## Common Mistakes
 
 | Mistake | Fix |
-|---------|-----|
-| Writing to global skill folder | Always write to PROJECT's .agent/nhallucinate/ |
-| Not checking past work | Look in lessons-learned.md first |
-| Documenting too much | Keep summaries, link details |
-| Forgetting to update memory | Update after each milestone |
-| Skipping initialization | Run /nhallucinate init first time |
-
----
-
-## Optimization Guidelines
-
-- **Time limit**: <30 seconds to read memory
-- **Age limit**: Ignore changes older than 30 days
-- **Focus**: Recent changes, dependencies, structure
-- **Flag uncertainty**: Explicitly note when unsure
-
----
-
-## File Structure Summary
-
-```
-PROJECT/
-├── .agent/
-│   └── nhallucinate/
-│       ├── memory.md           ← Project state & milestones
-│       ├── project-context.md  ← Tech stack & files
-│       ├── lessons-learned.md   ← What NOT to do
-│       ├── current-task.md     ← Active task
-│       └── history/           ← Session snapshots
-├── src/
-└── package.json
-```
-
----
-
-## Integration with Other Skills
-
-- **cavecrew**: Use when pattern detection finds repeated errors
-- **debugging**: Feed detected patterns for systematic debugging
-- **brainstorming**: Consider before implementing major changes
+|--------|-----|
+| Writing to global folder | Always use PROJECT .agent/ |
+| Not checking patterns | Check error-patterns.json |
+| Not verifying signatures | Extract first |
+| Forgetting to update | Update each milestone |
 
 ---
 
 ## Summary
 
-| Aspect | Details |
-|--------|---------|
-| **Type** | Project-based (not global) |
-| **Location** | `PROJECT_ROOT/.agent/nhallucinate/` |
-| **Files** | 4 main + history folder |
-| **Key Benefit** | Prevents repeated failures |
-| **Memory** | Persists across sessions |
+| Component | Problem Solved | Mechanism |
+|-----------|---------------|-----------|
+| Memory Persistence | Forgets context | External files |
+| Pattern Detection | Repeats errors | Match patterns |
+| Signature Verification | Invents functions | AST parsing |
+| Context Management | Context overflow | Compression |
 
-**Remember**: What AI learns in Project A stays in Project A. Each project has its own memory.
+**Remember**: What AI learns in Project A stays in Project A.
+
+---
+
+## Links
+
+- **GitHub Repo**: https://github.com/AlanNobita/nhallucinate
+- **Skill File**: SKILL.md
+- **Template**: .agent/nhallucinate/
